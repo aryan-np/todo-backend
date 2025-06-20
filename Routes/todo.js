@@ -14,4 +14,8 @@ router.post('/', authMiddleware, isAdmin, todoController.createTodo);
 router.put('/:id', authMiddleware, isAdmin, todoController.updateTodo);
 router.delete('/:id', authMiddleware, isAdmin, todoController.deleteTodo);
 
+router.post('/filter', authMiddleware, todoController.filterTodo);
+router.post('/shift', authMiddleware, todoController.shiftTodo); // or allow users if needed
+
+
 module.exports = router;
