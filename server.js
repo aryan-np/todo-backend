@@ -19,6 +19,12 @@ app.use("/auth",authRoutes);
 app.use("/todo",todoRoutes);
 app.use("/comment",commentRoutes);
 
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./docs.yaml');
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 
 // Sample Route
 app.get('/', (req, res) => {

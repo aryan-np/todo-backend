@@ -1,0 +1,291 @@
+openapi: 3.0.0
+info:
+  title: Todo Management API
+  version: 1.0.0
+  description: A full-featured API for user authentication, todo tracking, and commenting system.
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+paths:
+  /auth/signup:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '201': { description: User created successfully }
+        '400': { description: User already exists }
+        '500': { description: Server error }
+
+  /auth/login:
+    post:
+      summary: Log in a user and return JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+        '400': { description: Invalid credentials }
+        '500': { description: Server error }
+
+  /auth/logout:
+    post:
+      summary: Logout user (JWT stateless)
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Logged out successfully }
+        '401': { description: Unauthorized }
+
+  /auth/reset-password-initiate:
+    post:
+      summary: Verify if email exists before reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string }
+      responses:
+        '200': { description: Email verified }
+        '404': { description: Email not found }
+
+  /auth/reset-password-done:
+    post:
+      summary: Reset user password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, newPassword]
+              properties:
+                email: { type: string }
+                newPassword: { type: string, format: password }
+      responses:
+        '200': { description: Password updated }
+        '404': { description: Email not found }
+
+  /todo:
+    get:
+      summary: Get todos based on user role
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of todos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Todo' }
+
+    post:
+      summary: Create a new todo (Admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TodoInput'
+      responses:
+        '201': { description: Todo created }
+        '400': { description: Validation failed }
+
+  /todo/{id}:
+    put:
+      summary: Update a todo by ID (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TodoInput'
+      responses:
+        '200': { description: Todo updated }
+        '404': { description: Todo not found }
+
+    delete:
+      summary: Delete a todo by ID (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Todo deleted }
+        '404': { description: Todo not found }
+
+  /todo/filter:
+    post:
+      summary: Filter todos by category, priority, and status
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                priority: { type: string }
+                status: { type: string }
+                category: { type: string }
+      responses:
+        '200': { description: Filtered todos }
+
+  /todo/shift:
+    post:
+      summary: Shift todo status (e.g. pending → in-progress)
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [todoId, to]
+              properties:
+                todoId: { type: string }
+                to: { type: string, enum: [pending, in-progress, completed] }
+      responses:
+        '200': { description: Status updated }
+        '400': { description: Invalid transition }
+
+  /comment:
+    post:
+      summary: Create comment for a todo
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [todo, text]
+              properties:
+                todo: { type: string }
+                text: { type: string }
+      responses:
+        '201': { description: Comment created }
+
+  /comment/{todoId}:
+    get:
+      summary: Get all comments for a todo
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: todoId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Comment' }
+
+  /comment/{id}:
+    delete:
+      summary: Delete a comment by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Comment deleted }
+        '403': { description: Forbidden }
+        '404': { description: Not found }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Todo:
+      type: object
+      properties:
+        _id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        date: { type: string, format: date }
+        priority: { type: string, enum: [High, Medium, Low] }
+        category: { type: string }
+        status: { type: string, enum: [pending, in-progress, completed] }
+        assignedTo: { type: string }
+        assignedBy: { type: string }
+
+    TodoInput:
+      type: object
+      required: [title, date, priority, assignedTo, assignedBy, status]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        date: { type: string, format: date }
+        priority: { type: string, enum: [High, Medium, Low] }
+        category: { type: string }
+        status: { type: string, enum: [pending, in-progress, completed] }
+        assignedTo: { type: string }
+        assignedBy: { type: string }
+
+    Comment:
+      type: object
+      properties:
+        _id: { type: string }
+        text: { type: string }
+        todo: { type: string }
+        by:
+          type: object
+          properties:
+            _id: { type: string }
+            name: { type: string }
+            email: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
