@@ -80,8 +80,8 @@ exports.checkEmail = async (req, res) => {
 };
 
 exports.resetPassword = async (req, res) => {
-    email = req.user.email
-  const { newPassword } = req.body;
+  
+  const { newPassword,email } = req.body;
 
   try {
     const user = await User.findOne({ email });

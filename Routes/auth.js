@@ -6,5 +6,7 @@ const authMiddleware = require('../Middlewares/auth');
 router.post('/signup', authController.signup);
 router.post('/login', authController.login);
 router.post('/logout', authMiddleware,authController.logout); // Client should handle token removal
+router.post('/reset-password-initiate',authController.checkEmail); // Client should handle token removal
+router.post('/reset-password-done', authController.resetPassword); // Client should handle token removal
 
 module.exports = router;
